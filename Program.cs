@@ -1,4 +1,7 @@
-﻿using signalR.SignalRHub;
+﻿using Microsoft.EntityFrameworkCore;
+using signalR.Context;
+using signalR.Repository;
+using signalR.SignalRHub;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +13,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddSignalR();
+builder.Services.AddDbContext<MyDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Thêm CORS để frontend (HTML) kết nối từ domain khác (ví dụ: file local)
 builder.Services.AddCors(options =>
@@ -21,6 +26,9 @@ builder.Services.AddCors(options =>
                .AllowAnyMethod();
     });
 });
+
+builder.Services.AddScoped<MyDbContext>();
+builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 
 var app = builder.Build();
 
