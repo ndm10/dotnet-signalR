@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using signalR.Context;
+using signalR.Entity;
 
 namespace signalR.SignalRHub
 {
@@ -95,7 +96,21 @@ namespace signalR.SignalRHub
         public async Task SendGroupMessage(string senderId, string groupName, string message)
         {
             var sender = _context.Users.Find(Guid.Parse(senderId));
-            await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", sender, message);
+            // Save message to the database
+
+            var chatMessage = new ChatMessage
+            {
+                Id = Guid.NewGuid(),
+                SenderId = Guid.Parse(senderId),
+                Message = message,
+                GroupName = groupName,
+                IsReaded = false,
+                Timestamp = DateTime.Now
+            };
+            await _context.ChatMessages.AddAsync(chatMessage);
+            await _context.SaveChangesAsync();
+
+            await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", sender, message, chatMessage.Timestamp.ToString("HH:mm:ss dd/MM/yyyy"));
         }
 
         // Tùy chọn: Lấy danh sách user online

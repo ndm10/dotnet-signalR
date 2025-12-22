@@ -17,22 +17,40 @@ namespace signalR.Controllers
             _context = context;
         }
 
-        [HttpGet("get-messages/{GroupName}/{page}")]
-        public async Task<IActionResult> GetMessages(string GroupName, int page)
+        [HttpGet("messages")]
+        public async Task<IActionResult> GetMessages(string groupName, int page)
         {
-            if (string.IsNullOrWhiteSpace(GroupName))
+            if (string.IsNullOrWhiteSpace(groupName))
             {
                 return Ok(new List<ChatMessage>());
             }
 
-            var messages = _context.ChatMessages
-                .Where(m => m.GroupName == GroupName)
-                .OrderBy(m => m.Timestamp)
+            var chatMessages = _context.ChatMessages;
+            var users = _context.Users;
+
+            var messages = chatMessages
+                .Join(users,
+                    l => l.SenderId,
+                    users => users.Id,
+                    (chatMessages, users) => new { chatMessages, users }
+                )
+                .OrderByDescending(x => x.chatMessages.Timestamp)
+                .Where(x => x.chatMessages.GroupName == groupName)
                 .Skip((page - 1) * 10)
                 .Take(10)
+                .Select(
+                    x => new
+                    {
+                        x.chatMessages.SenderId,
+                        x.chatMessages.Message,
+                        x.chatMessages.Timestamp,
+                        x.users.Name,
+                        x.users.Logo
+                    }
+                )
                 .ToList();
 
-            return Ok(messages);
+            return Ok(messages.OrderBy(x => x.Timestamp));
         }
     }
 }
